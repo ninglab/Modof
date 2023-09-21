@@ -311,15 +311,6 @@ def attach_mol_graph(graph, mol, atom1_idxs, atom2_idxs):
     if 0 in clq: pdb.set_trace()  
     return graph, anchor, clq, amap
     
-def local_attach(ctr_mol, neighbors, prev_nodes, amap_list):
-    ctr_mol = copy_edit_mol(ctr_mol)
-    nei_amap = {nei.nid:{} for nei in prev_nodes + neighbors}
-
-    for nei_id,ctr_atom,nei_atom in amap_list:
-        nei_amap[nei_id][nei_atom] = ctr_atom
-    ctr_mol = attach_mols(ctr_mol, neighbors, prev_nodes, nei_amap)
-    return ctr_mol.GetMol()
-
 def check_singleton(cand_mol, ctr_node, nei_nodes):
     rings = [node for node in nei_nodes + [ctr_node] if node.mol.GetNumAtoms() > 2]
     singletons = [node for node in nei_nodes + [ctr_node] if node.mol.GetNumAtoms() == 1]
@@ -332,25 +323,3 @@ def check_singleton(cand_mol, ctr_node, nei_nodes):
             n_leaf2_atoms += 1
 
     return n_leaf2_atoms == 0
-
-def check_aroma(cand_mol, ctr_node, nei_nodes):
-    rings = [node for node in nei_nodes + [ctr_node] if node.mol.GetNumAtoms() >= 3]
-    if len(rings) < 2: return 0 #Only multi-ring system needs to be checked
-    
-    get_nid = lambda x: 0 if x.is_leaf else x.nid
-        
-    benzynes = [get_nid(node) for node in nei_nodes + [ctr_node] if node.smiles in Vocab.benzynes] 
-    penzynes = [get_nid(node) for node in nei_nodes + [ctr_node] if node.smiles in Vocab.penzynes] 
-    if len(benzynes) + len(penzynes) == 0: 
-        return 0 #No specific aromatic rings
-
-    n_aroma_atoms = 0
-    for atom in cand_mol.GetAtoms():
-        if atom.GetAtomMapNum() in benzynes+penzynes and atom.GetIsAromatic():
-            n_aroma_atoms += 1
-
-    cur_mol = attach_mols(cur_mol, children, [], global_amap) #father is already attached
-    cur_mol = attach_mols(cur_mol, children, [], global_amap) #father is already attached
-    for nei_node in children:
-        if not nei_node.is_leaf:
-            dfs_assemble(cur_mol, global_amap, label_amap, nei_node, cur_node)
